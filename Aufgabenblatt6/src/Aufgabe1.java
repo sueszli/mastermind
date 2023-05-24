@@ -108,12 +108,7 @@ public class Aufgabe1 {
         cd.setTitle("master mind");
         var es = cd.getEventScanner();
 
-        Supplier<int[]> solutionGenerator = () -> {
-            int[] s = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
-            System.out.println("generated solution: " + Arrays.toString(s));
-            return s;
-        };
-
+        Supplier<int[]> solutionGenerator = () -> IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
         int[] solution = solutionGenerator.get();
         int[][] guesses = new int[MAX_ROUNDS][CODE_LENGTH]; // -1: empty, 0-8: colors
         Arrays.setAll(guesses, i -> Arrays.stream(guesses[i]).map(j -> -1).toArray());
@@ -173,8 +168,7 @@ public class Aufgabe1 {
 
             // update hint array
             final int cr = currentRound;
-            int[] s = solution;
-            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == s[i] ? 2 : (Arrays.stream(s).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
+            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == solution[i] ? 2 : (Arrays.stream(solution).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
             System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr]) + " (round " + currentRound + ")");
 
             // render

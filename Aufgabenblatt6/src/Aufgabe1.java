@@ -1,62 +1,29 @@
 import codedraw.*;
 
 import java.awt.Color;
-import java.util.Arrays;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.IntStream;
 
 public class Aufgabe1 {
-    private static final int NUMBER_OF_TURNS = 10;
+    private static final int MAX_ROUNDS = 10;
     private static final int CODE_LENGTH = 4;
-    private static final int NUMBER_OF_COLUMNS = CODE_LENGTH * 2 + 1;
+
     private static final Color[] COLORS = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.DARK_GRAY, Color.RED, Color.PINK, Color.YELLOW};
+    private static final int[] SOLUTION = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray(); // -1: empty, 0-8: colors
 
-    private static int[][] playField = null;
-    private static int[][] tips = null;
-    private static int turn = 0;
-    private static int pin = 0;
-    private static int[] solution = null;
+    private static void showMessage(CodeDraw cd, String text, Color color) {
+        int rectWidth = cd.getWidth() / 2;
+        int rectHeight = cd.getHeight() / 6;
+        int xPos = cd.getWidth() / 4;
+        int yPos = cd.getHeight() / 2 - rectHeight / 2;
 
-    // initializes all global variables for the game
-    private static void initGame() {
-        playField = new int[NUMBER_OF_TURNS][CODE_LENGTH];
-        tips = new int[NUMBER_OF_TURNS][CODE_LENGTH]; // 1 == red; 2 == white
-        turn = 0;
-        pin = 0;
-        solution = generateCode();
-        //for testing to print the solution
-        System.out.println(Arrays.toString(solution));
-    }
-
-    // generates array with length CODE_LENGTH and random numbers from 1 to COLORS.length
-    private static int[] generateCode() {
-        // TODO: Implementieren Sie hier Ihre Lösung für die Methode
-        return null;
-    }
-
-    // calculates red and white tip pins
-    private static void updateTips() {
-        // TODO: Implementieren Sie hier Ihre Lösung für die Methode
-    }
-
-    // draws game to screen
-    private static void drawGame(CodeDraw myDrawObj) {
-        // TODO: Implementieren Sie hier Ihre Lösung für die Methode
-    }
-
-    private static void clearBoard(CodeDraw myDrawObj) {
-        // TODO: Implementieren Sie hier Ihre Lösung für die Methode
-    }
-
-    private static void showMessage(CodeDraw myDrawObj, String text, Color color) {
-        int rectWidth = myDrawObj.getWidth() / 2;
-        int rectHeight = myDrawObj.getHeight() / 6;
-        int xPos = myDrawObj.getWidth() / 4;
-        int yPos = myDrawObj.getHeight() / 2 - rectHeight / 2;
-
-        myDrawObj.setColor(Palette.LIGHT_GRAY);
-        myDrawObj.fillRectangle(xPos, yPos, rectWidth, rectHeight);
-        myDrawObj.setColor(Palette.BLACK);
-        myDrawObj.drawRectangle(xPos, yPos, rectWidth, rectHeight);
-        myDrawObj.setColor(color);
+        cd.setColor(Palette.LIGHT_GRAY);
+        cd.fillRectangle(xPos, yPos, rectWidth, rectHeight);
+        cd.setColor(Palette.BLACK);
+        cd.drawRectangle(xPos, yPos, rectWidth, rectHeight);
+        cd.setColor(color);
 
         // set font for text
         TextFormat font = new TextFormat();
@@ -64,48 +31,91 @@ public class Aufgabe1 {
         font.setFontName("Arial");
         font.setTextOrigin(TextOrigin.CENTER);
         font.setBold(true);
-        myDrawObj.setTextFormat(font);
+        cd.setTextFormat(font);
 
-        myDrawObj.drawText(myDrawObj.getWidth() / 2, myDrawObj.getHeight() / 2, text);
-        myDrawObj.show(3000);
+        cd.drawText(cd.getWidth() / 2, cd.getHeight() / 2, text);
+        cd.show(3000);
     }
 
-    private static void playGame(CodeDraw myDrawObj, EventScanner myEventSC) {
-        boolean gameActive = true;
-        while (!myDrawObj.isClosed() && gameActive) {
-            if (myEventSC.hasKeyPressEvent()) {
-                if (myEventSC.nextKeyPressEvent().getChar() == 'q') {
-                    gameActive = false;
-                }
-            } else if (myEventSC.hasMouseClickEvent()) {
-                MouseClickEvent currentClick = myEventSC.nextMouseClickEvent();
-                int mouseX = currentClick.getX();
-                int mouseY = currentClick.getY();
+    private static void initView(CodeDraw cd) {
+        int rectWidth = cd.getWidth() / (CODE_LENGTH * 2 + 1);
+        int rectHeight = cd.getHeight() / (COLORS.length + 1);
+        int xPos = cd.getWidth() - rectWidth;
 
-                //*****************************************************************************************************
-                // TODO: Implementieren Sie hier Ihre Lösung für die Methode
-                //****************************************************************************************************
-                drawGame(myDrawObj);
-            }
-            else {
-                myEventSC.nextEvent();
-            }
+        // draw color selection
+        IntStream.range(0, COLORS.length).forEach(i -> {
+            int yPos = rectHeight * i;
+            cd.setColor(COLORS[i]);
+            cd.fillRectangle(xPos, yPos, rectWidth, rectHeight);
+        });
+
+        Path path = Paths.get("back_button.png");
+        File file = path.toFile();
+        if (!file.exists()) {
+            System.out.println("OH NO");
         }
-        myDrawObj.close();
+
+//        Image img = Image.fromFile("src/back_button.png");
+//        cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
+
+
+        cd.show();
+    }
+
+    private static void updateView(CodeDraw cd, int currentRound, int[] guess, boolean[] evaluation) {
+
     }
 
     public static void main(String[] args) {
-
         int height = 800;
         int width = height + height / (COLORS.length + 1);
+        var cd = new CodeDraw(width, height);
+        cd.setTitle("master mind");
+        var es = cd.getEventScanner();
 
-        CodeDraw myDrawObj = new CodeDraw(width, height);
-        myDrawObj.setTitle("MasterMind Game");
-        EventScanner myEventSC = myDrawObj.getEventScanner();
+        initView(cd);
 
-        initGame();
-        drawGame(myDrawObj);
-        playGame(myDrawObj, myEventSC);
+        int currentRound = 0;
+        int guessPosition = 0;
+        while (true) {
+            // leave game loop
+            boolean isClosed = cd.isClosed();
+            boolean isQuit = es.hasKeyPressEvent() && es.nextKeyPressEvent().getChar() == 'q';
+            boolean isLastRound = currentRound == MAX_ROUNDS;
+            if (isClosed || isQuit || isLastRound) {
+                break;
+            }
+
+            // skip event
+            boolean isMouseClick = es.hasMouseClickEvent();
+            if (!isQuit && !isMouseClick) {
+                es.nextEvent();
+                continue;
+            }
+
+            // get user input
+            var click = es.nextMouseClickEvent();
+            int mouseX = click.getX();
+            int mouseY = click.getY();
+
+            // check if valid
+            boolean isValidClick = true;
+            if (!isValidClick) {
+                System.out.println("invalid click detected");
+                continue;
+            }
+            System.out.println("valid click detected");
+            guessPosition = (guessPosition + 1) % CODE_LENGTH;
+            currentRound++;
+
+            // update state based on user input
+
+        }
+        cd.close();
+
+//        final var guess = new int[CODE_LENGTH];
+//        final var evaluation = new boolean[CODE_LENGTH];
+//        final var isSolved = IntStream.range(0, CODE_LENGTH).allMatch(i -> evaluations[currentRound][i]);
     }
 }
 

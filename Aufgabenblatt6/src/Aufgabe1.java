@@ -1,8 +1,8 @@
 import codedraw.*;
 
 import java.awt.Color;
-import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -11,9 +11,8 @@ public class Aufgabe1 {
     private static final int CODE_LENGTH = 4;
 
     private static final Color[] COLORS = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.DARK_GRAY, Color.RED, Color.PINK, Color.YELLOW};
-    private static final int[] SOLUTION = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
 
-    private static void showMessage(CodeDraw cd, String text, Color color) {
+    private static void renderMessage(CodeDraw cd, String text, Color color) {
         int rectWidth = cd.getWidth() / 2;
         int rectHeight = cd.getHeight() / 6;
         int xPos = cd.getWidth() / 4;
@@ -36,7 +35,7 @@ public class Aufgabe1 {
         cd.show(3000);
     }
 
-    private static void drawState(CodeDraw cd, int[][] guesses, int[][] hints) {
+    private static void render(CodeDraw cd, int[][] guesses, int[][] hints) {
         // background
         cd.setColor(Palette.LIGHT_GRAY);
         cd.fillRectangle(0, 0, cd.getWidth(), cd.getHeight());
@@ -79,18 +78,22 @@ public class Aufgabe1 {
             });
         });
 
-        // get current state by finding first line in guesses that is empty
-        int currentRound = IntStream.range(0, MAX_ROUNDS).filter(i -> guesses[i][0] == -1).findFirst().orElse(-1);
+        // draw hint circles (before current round)
+        final int currentRound = IntStream.range(0, MAX_ROUNDS).filter(i -> guesses[i][0] != -1).max().orElse(0);
+        boolean inProgress = IntStream.range(0, CODE_LENGTH).anyMatch(i -> guesses[currentRound][i] == -1);
+        Function<Integer, Color> hintToColor = hint -> {
+            if (hint == 0) {
+                return Palette.LIGHT_GRAY;
+            } else if (hint == 1) {
+                return Palette.WHITE;
+            } else {
+                return Palette.RED;
+            }
+        };
         final int sizeReduction = 25;
-        IntStream.range(0, currentRound - 1).forEach(row -> {
+        IntStream.range(0, inProgress ? currentRound : currentRound + 1 ).forEach(row -> {
             IntStream.range(0, CODE_LENGTH).forEach(col -> {
-                if (hints[row][col] == 0) {
-                    return;
-                } else if (hints[row][col] == 1) {
-                    cd.setColor(Palette.WHITE);
-                } else {
-                    cd.setColor(Palette.RED);
-                }
+                cd.setColor(hintToColor.apply(hints[row][col]));
                 cd.fillCircle(circleRadius + col * circleSpacing + (double) availableWidth / 2, circleRadius + row * circleSpacing, circleRadius - sizeReduction);
             });
         });
@@ -105,13 +108,18 @@ public class Aufgabe1 {
         cd.setTitle("master mind");
         var es = cd.getEventScanner();
 
-        System.out.println("solution: " + Arrays.toString(SOLUTION));
+        Supplier<int[]> solutionGenerator = () -> {
+            int[] s = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
+            System.out.println("generated solution: " + Arrays.toString(s));
+            return s;
+        };
 
+        int[] solution = solutionGenerator.get();
         int[][] guesses = new int[MAX_ROUNDS][CODE_LENGTH]; // -1: empty, 0-8: colors
         Arrays.setAll(guesses, i -> Arrays.stream(guesses[i]).map(j -> -1).toArray());
         int[][] hints = new int[MAX_ROUNDS][CODE_LENGTH]; // 0: empty, 1: white, 2: red
 
-        drawState(cd, guesses, hints);
+        render(cd, guesses, hints);
 
         int currentRound = 0;
         int guessPosition = 0;
@@ -165,35 +173,36 @@ public class Aufgabe1 {
 
             // update hint array
             final int cr = currentRound;
-            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == SOLUTION[i] ? 2 : (Arrays.stream(SOLUTION).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
-            System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr]));
+            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == solution[i] ? 2 : (Arrays.stream(solution).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
+            System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr]) + " (round " + currentRound + ")");
 
-            // draw state
-            boolean showHint = guessPosition == CODE_LENGTH;
-            drawState(cd, guesses, hints);
+            // render
+            render(cd, guesses, hints);
 
-            // update state based on user input
-            // click on delete -> delete
-            // click on color -> check if color is already in guess, if not add color to guess
-
-            // write message
-            boolean solved = IntStream.range(0, CODE_LENGTH).allMatch(i -> hints[cr][i] == 2);
-
-            if (guessPosition == CODE_LENGTH) {
-//                if (solved) {
-//                    writeMessage(cd, Palette.GREEN, "You won!");
-//                    break;
-//                } else if (currentRound == MAX_ROUNDS - 1) {
-//                    writeMessage(cd, Palette.RED, "You lost!");
-//                    break;
-//                } else {
-//                    writeMessage(cd, Palette.BLACK, "Next round");
-//                }
-
-                System.out.println("starting next round");
-                guessPosition = 0;
-                currentRound++;
+            // check if round is over
+            if (guessPosition != CODE_LENGTH) {
+                continue;
             }
+
+            // check if game is over
+            Supplier<Void> restartGame = () -> {
+                System.out.println("restarting game --");
+                return null;
+            };
+            boolean solved = IntStream.range(0, CODE_LENGTH).allMatch(i -> hints[cr][i] == 2);
+            if (solved) {
+                renderMessage(cd, "You won!", Color.GREEN);
+                break;
+            }
+            boolean lastRound = currentRound == MAX_ROUNDS - 1;
+            if (lastRound) {
+                renderMessage(cd, "You lost!", Color.RED);
+                break;
+            }
+
+            guessPosition = 0;
+            currentRound++;
+            System.out.println("starting next round --");
         }
         cd.close();
     }

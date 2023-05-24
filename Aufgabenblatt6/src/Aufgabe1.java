@@ -1,9 +1,9 @@
 import codedraw.*;
 
 import java.awt.Color;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class Aufgabe1 {
@@ -11,7 +11,7 @@ public class Aufgabe1 {
     private static final int CODE_LENGTH = 4;
 
     private static final Color[] COLORS = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.DARK_GRAY, Color.RED, Color.PINK, Color.YELLOW};
-    private static final int[] SOLUTION = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray(); // -1: empty, 0-8: colors
+    private static final int[] SOLUTION = IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
 
     private static void showMessage(CodeDraw cd, String text, Color color) {
         int rectWidth = cd.getWidth() / 2;
@@ -25,7 +25,6 @@ public class Aufgabe1 {
         cd.drawRectangle(xPos, yPos, rectWidth, rectHeight);
         cd.setColor(color);
 
-        // set font for text
         TextFormat font = new TextFormat();
         font.setFontSize(40);
         font.setFontName("Arial");
@@ -33,38 +32,62 @@ public class Aufgabe1 {
         font.setBold(true);
         cd.setTextFormat(font);
 
-        cd.drawText(cd.getWidth() / 2, cd.getHeight() / 2, text);
+        cd.drawText((double) cd.getWidth() / 2, (double) cd.getHeight() / 2, text);
         cd.show(3000);
     }
 
-    private static void initView(CodeDraw cd) {
-        int rectWidth = cd.getWidth() / (CODE_LENGTH * 2 + 1);
-        int rectHeight = cd.getHeight() / (COLORS.length + 1);
-        int xPos = cd.getWidth() - rectWidth;
+    private static void drawState(CodeDraw cd) {
+        // background
+        cd.setColor(Palette.LIGHT_GRAY);
+        cd.fillRectangle(0, 0, cd.getWidth(), cd.getHeight());
 
         // draw color selection
+        final int rectWidth = cd.getWidth() / (CODE_LENGTH * 2 + 1);
+        final int rectHeight = cd.getHeight() / (COLORS.length + 1);
+        final int xPos = cd.getWidth() - rectWidth;
         IntStream.range(0, COLORS.length).forEach(i -> {
-            int yPos = rectHeight * i;
+            final int yPos = rectHeight * i;
             cd.setColor(COLORS[i]);
             cd.fillRectangle(xPos, yPos, rectWidth, rectHeight);
         });
+        final var path = "./Aufgabenblatt6/src/back_button.png";
+        final var img = Image.fromFile(path);
+        cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
 
-        Path path = Paths.get("back_button.png");
-        File file = path.toFile();
-        if (!file.exists()) {
-            System.out.println("OH NO");
-        }
+        // calculate space for remaining blocks
+        final int availableWidth = cd.getWidth() - rectWidth;
+        final int availableHeight = cd.getHeight();
+        final int blockWidth = availableWidth / (CODE_LENGTH * 2);
+        final int blockHeight = availableHeight / MAX_ROUNDS;
 
-//        Image img = Image.fromFile("src/back_button.png");
-//        cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
+        // draw user input circles
+        final int circleRadius = Math.min(blockWidth, blockHeight) / 2;
+        final int circleSpacing = circleRadius * 2;
+        IntStream.range(0, MAX_ROUNDS).forEach(row -> {
+            IntStream.range(0, CODE_LENGTH).forEach(col -> {
+                // outer circle
+                cd.setColor(Palette.BLACK);
+                cd.fillCircle(circleRadius + col * circleSpacing, circleRadius + row * circleSpacing, circleRadius);
+
+                // inner circle
+                cd.setColor(Palette.WHITE);
+                cd.fillCircle(circleRadius + col * circleSpacing, circleRadius + row * circleSpacing, circleRadius - 1);
+            });
+        });
+
+        // draw hint circles
+        final int sizeReduction = 25;
+        IntStream.range(0, MAX_ROUNDS).forEach(row -> {
+            IntStream.range(0, CODE_LENGTH).forEach(col -> {
+                cd.setColor(Palette.BLACK);
+                cd.fillCircle(circleRadius + col * circleSpacing + availableWidth / 2, circleRadius + row * circleSpacing, circleRadius - sizeReduction);
+            });
+        });
 
 
         cd.show();
     }
 
-    private static void updateView(CodeDraw cd, int currentRound, int[] guess, boolean[] evaluation) {
-
-    }
 
     public static void main(String[] args) {
         int height = 800;
@@ -73,7 +96,13 @@ public class Aufgabe1 {
         cd.setTitle("master mind");
         var es = cd.getEventScanner();
 
-        initView(cd);
+
+        drawState(cd);
+        System.out.println("solution: " + Arrays.toString(SOLUTION));
+
+
+        int[][] guesses = new int[MAX_ROUNDS][CODE_LENGTH]; // -1: empty, 0-8: colors
+        int[][] hints = new int[MAX_ROUNDS][CODE_LENGTH]; // 0: empty, 1: white, 2: red
 
         int currentRound = 0;
         int guessPosition = 0;
@@ -81,14 +110,14 @@ public class Aufgabe1 {
             // leave game loop
             boolean isClosed = cd.isClosed();
             boolean isQuit = es.hasKeyPressEvent() && es.nextKeyPressEvent().getChar() == 'q';
-            boolean isLastRound = currentRound == MAX_ROUNDS;
-            if (isClosed || isQuit || isLastRound) {
+            boolean noRoundsLeft = currentRound == MAX_ROUNDS;
+            if (isClosed || isQuit || noRoundsLeft) {
                 break;
             }
 
             // skip event
             boolean isMouseClick = es.hasMouseClickEvent();
-            if (!isQuit && !isMouseClick) {
+            if (!isMouseClick) {
                 es.nextEvent();
                 continue;
             }
@@ -109,13 +138,18 @@ public class Aufgabe1 {
             currentRound++;
 
             // update state based on user input
+            // click on delete -> delete
+            // click on color -> check if color is already in guess, if not add color to guess
+
+            int[] guess = new int[CODE_LENGTH];
+            int[] hint = IntStream.range(0, CODE_LENGTH).map(i -> guess[i] == SOLUTION[i] ? 2 :
+                    (Arrays.stream(SOLUTION).anyMatch(x -> x == guess[i]) ? 1 : 0))
+                    .toArray();
+
+//        Supplier<Boolean> isSolved = () -> IntStream.range(0, CODE_LENGTH).allMatch(i -> evaluations[currentRound][i]);
 
         }
         cd.close();
-
-//        final var guess = new int[CODE_LENGTH];
-//        final var evaluation = new boolean[CODE_LENGTH];
-//        final var isSolved = IntStream.range(0, CODE_LENGTH).allMatch(i -> evaluations[currentRound][i]);
     }
 }
 

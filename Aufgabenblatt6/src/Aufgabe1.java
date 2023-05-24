@@ -36,7 +36,7 @@ public class Aufgabe1 {
         cd.show(3000);
     }
 
-    private static void drawState(CodeDraw cd) {
+    private static void drawState(CodeDraw cd, int[][] guesses, int[][] hints) {
         // background
         cd.setColor(Palette.LIGHT_GRAY);
         cd.fillRectangle(0, 0, cd.getWidth(), cd.getHeight());
@@ -60,7 +60,7 @@ public class Aufgabe1 {
         final int blockWidth = availableWidth / (CODE_LENGTH * 2);
         final int blockHeight = availableHeight / MAX_ROUNDS;
 
-        // draw user input circles
+        // draw guess circles
         final int circleRadius = Math.min(blockWidth, blockHeight) / 2;
         final int circleSpacing = circleRadius * 2;
         IntStream.range(0, MAX_ROUNDS).forEach(row -> {
@@ -70,24 +70,33 @@ public class Aufgabe1 {
                 cd.fillCircle(circleRadius + col * circleSpacing, circleRadius + row * circleSpacing, circleRadius);
 
                 // inner circle
-                cd.setColor(Palette.WHITE);
+                if (guesses[row][col] == -1) {
+                    cd.setColor(Palette.WHITE);
+                } else {
+                    cd.setColor(COLORS[guesses[row][col]]);
+                }
                 cd.fillCircle(circleRadius + col * circleSpacing, circleRadius + row * circleSpacing, circleRadius - 1);
             });
         });
 
-        // draw hint circles
+        // get current state by finding first line in guesses that is empty
+        int currentRound = IntStream.range(0, MAX_ROUNDS).filter(i -> guesses[i][0] == -1).findFirst().orElse(-1);
         final int sizeReduction = 25;
-        IntStream.range(0, MAX_ROUNDS).forEach(row -> {
+        IntStream.range(0, currentRound - 1).forEach(row -> {
             IntStream.range(0, CODE_LENGTH).forEach(col -> {
-                cd.setColor(Palette.BLACK);
-                cd.fillCircle(circleRadius + col * circleSpacing + availableWidth / 2, circleRadius + row * circleSpacing, circleRadius - sizeReduction);
+                if (hints[row][col] == 0) {
+                    return;
+                } else if (hints[row][col] == 1) {
+                    cd.setColor(Palette.WHITE);
+                } else {
+                    cd.setColor(Palette.RED);
+                }
+                cd.fillCircle(circleRadius + col * circleSpacing + (double) availableWidth / 2, circleRadius + row * circleSpacing, circleRadius - sizeReduction);
             });
         });
 
-
         cd.show();
     }
-
 
     public static void main(String[] args) {
         int height = 800;
@@ -96,13 +105,13 @@ public class Aufgabe1 {
         cd.setTitle("master mind");
         var es = cd.getEventScanner();
 
-
-        drawState(cd);
         System.out.println("solution: " + Arrays.toString(SOLUTION));
 
-
         int[][] guesses = new int[MAX_ROUNDS][CODE_LENGTH]; // -1: empty, 0-8: colors
+        Arrays.setAll(guesses, i -> Arrays.stream(guesses[i]).map(j -> -1).toArray());
         int[][] hints = new int[MAX_ROUNDS][CODE_LENGTH]; // 0: empty, 1: white, 2: red
+
+        drawState(cd, guesses, hints);
 
         int currentRound = 0;
         int guessPosition = 0;
@@ -110,8 +119,7 @@ public class Aufgabe1 {
             // leave game loop
             boolean isClosed = cd.isClosed();
             boolean isQuit = es.hasKeyPressEvent() && es.nextKeyPressEvent().getChar() == 'q';
-            boolean noRoundsLeft = currentRound == MAX_ROUNDS;
-            if (isClosed || isQuit || noRoundsLeft) {
+            if (isClosed || isQuit) {
                 break;
             }
 
@@ -122,32 +130,70 @@ public class Aufgabe1 {
                 continue;
             }
 
-            // get user input
+            // check if user input is valid
             var click = es.nextMouseClickEvent();
-            int mouseX = click.getX();
-            int mouseY = click.getY();
-
-            // check if valid
-            boolean isValidClick = true;
+            final int rectWidth = cd.getWidth() / (CODE_LENGTH * 2 + 1);
+            boolean isValidClick = click.getX() >= cd.getWidth() - rectWidth;
             if (!isValidClick) {
-                System.out.println("invalid click detected");
+                System.out.println("invalid click");
                 continue;
             }
-            System.out.println("valid click detected");
-            guessPosition = (guessPosition + 1) % CODE_LENGTH;
-            currentRound++;
+
+            // update guess array
+            final int rectHeight = cd.getHeight() / (COLORS.length + 1);
+            final int choice = click.getY() / rectHeight;
+            if (choice == COLORS.length) {
+                boolean isDeletePossible = guessPosition > 0;
+                if (!isDeletePossible) {
+                    System.out.println("delete not possible");
+                    continue;
+                }
+                // delete color
+                guesses[currentRound][guessPosition - 1] = -1;
+                guessPosition--;
+
+            } else {
+                boolean isColorInGuess = Arrays.stream(guesses[currentRound]).anyMatch(x -> x == choice);
+                if (isColorInGuess) {
+                    System.out.println("color already in guess");
+                    continue;
+                }
+                // add color
+                guesses[currentRound][guessPosition] = choice;
+                guessPosition++;
+            }
+
+            // update hint array
+            final int cr = currentRound;
+            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == SOLUTION[i] ? 2 : (Arrays.stream(SOLUTION).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
+            System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr]));
+
+            // draw state
+            boolean showHint = guessPosition == CODE_LENGTH;
+            drawState(cd, guesses, hints);
 
             // update state based on user input
             // click on delete -> delete
             // click on color -> check if color is already in guess, if not add color to guess
 
-            int[] guess = new int[CODE_LENGTH];
-            int[] hint = IntStream.range(0, CODE_LENGTH).map(i -> guess[i] == SOLUTION[i] ? 2 :
-                    (Arrays.stream(SOLUTION).anyMatch(x -> x == guess[i]) ? 1 : 0))
-                    .toArray();
+            // write message
+            boolean solved = IntStream.range(0, CODE_LENGTH).allMatch(i -> hints[cr][i] == 2);
 
-//        Supplier<Boolean> isSolved = () -> IntStream.range(0, CODE_LENGTH).allMatch(i -> evaluations[currentRound][i]);
+            if (guessPosition == CODE_LENGTH) {
+//                if (solved) {
+//                    writeMessage(cd, Palette.GREEN, "You won!");
+//                    break;
+//                } else if (currentRound == MAX_ROUNDS - 1) {
+//                    writeMessage(cd, Palette.RED, "You lost!");
+//                    break;
+//                } else {
+//                    writeMessage(cd, Palette.BLACK, "Next round");
+//                }
 
+                System.out.println("starting next round");
+                guessPosition = 0;
+                currentRound++;
+            }
         }
         cd.close();
     }

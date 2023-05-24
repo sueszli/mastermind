@@ -3,31 +3,26 @@
 Das Beispiel ist sehr klar und verständlich formuliert. Die Schwierigkeit ist angemessen.
 Die eigentliche Herausforderung liegt darin mit den gegebenen Freiheiten umzugehen und eine gute Struktur zu finden.
 
-
-
 <br><br>
-
-
 
 ## Herausforderungen
 
 - Ich habe sehr lange gebraucht um zu verstehen, welchen Pfad man für die `back_button.png` Datei angeben muss:
-  
+
   ```java
     var path = "./Aufgabenblatt6/src/back_button.png";
     Image img = Image.fromFile(path);
     cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
   ```
 
-
-
 <br><br>
-
-
 
 ## Vorschläge
 
 - In der Angabe das Wort "Komplettierung" durch "Vervollständigung" ersetzen.
+
+- Spielreihenfolge von oben nach unten und rechts nach links wie man es von der natürlichen Sprache gewohnt ist wäre
+  noch besser (ich habe es so umgesetzt).
 
 - Ich habe alles umschrieben, da nur angefordert wurde, dass man die Dateinamen und die Ordnerstruktur nicht
   manipuliert.

@@ -138,7 +138,7 @@ public class Aufgabe1 {
                 continue;
             }
 
-            // check if user input is valid
+            // check if click is valid
             var click = es.nextMouseClickEvent();
             final int rectWidth = cd.getWidth() / (CODE_LENGTH * 2 + 1);
             boolean isValidClick = click.getX() >= cd.getWidth() - rectWidth;
@@ -180,12 +180,12 @@ public class Aufgabe1 {
             // render
             render(cd, guesses, hints);
 
-            // check if round is over
+            // check if round continues
             if (guessPosition != CODE_LENGTH) {
                 continue;
             }
 
-            // check if game is over
+            // check if game continues
             boolean solved = IntStream.range(0, CODE_LENGTH).allMatch(i -> hints[cr][i] == 2);
             boolean lastRound = currentRound == MAX_ROUNDS - 1;
             if (!solved && !lastRound) {

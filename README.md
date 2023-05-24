@@ -9,11 +9,14 @@ Die eigentliche Herausforderung liegt darin mit den gegebenen Freiheiten umzugeh
 
 - Ich habe sehr lange gebraucht um zu verstehen, welchen Pfad man für die `back_button.png` Datei angeben muss:
 
-  ```java
+  ```
     var path = "./Aufgabenblatt6/src/back_button.png";
     Image img = Image.fromFile(path);
     cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
   ```
+
+- ich habe sehr lange für den randfall gebraucht, bei dem der Hint von der letzten runde nicht verschwinden sollte,
+  wenn man in der aktuellen Runde das erste element löscht
 
 <br><br>
 

@@ -1,4 +1,4 @@
-This game was implemented with the [CodeDraw library](https://github.com/Krassnig/CodeDraw).
+This game was implemented with the [CodeDraw library](https://github.com/Krassnig/CodeDraw) and serves as a small demo for that project.
 
 ```bash
 # install java

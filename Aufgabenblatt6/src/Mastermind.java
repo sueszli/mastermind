@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-public class Aufgabe1 {
+public class Mastermind {
     private static final int MAX_ROUNDS = 10;
     private static final int CODE_LENGTH = 4;
 

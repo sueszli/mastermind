@@ -50,7 +50,7 @@ public class Mastermind {
             cd.setColor(COLORS[i]);
             cd.fillRectangle(xPos, yPos, rectWidth, rectHeight);
         });
-        final var path = "./assets/back_button.png";
+        final var path = "./src/back_button.png";
         final var img = Image.fromFile(path);
         cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
 

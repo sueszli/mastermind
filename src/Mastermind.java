@@ -10,7 +10,8 @@ public class Mastermind {
     private static final int MAX_ROUNDS = 10;
     private static final int CODE_LENGTH = 4;
 
-    private static final Color[] COLORS = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.DARK_GRAY, Color.RED, Color.PINK, Color.YELLOW};
+    private static final Color[] COLORS = new Color[] { Color.BLUE, Color.CYAN, Color.GREEN, Color.MAGENTA,
+            Color.ORANGE, Color.DARK_GRAY, Color.RED, Color.PINK, Color.YELLOW };
 
     private static void renderMessage(CodeDraw cd, String text, Color color) {
         int rectWidth = cd.getWidth() / 2;
@@ -49,7 +50,7 @@ public class Mastermind {
             cd.setColor(COLORS[i]);
             cd.fillRectangle(xPos, yPos, rectWidth, rectHeight);
         });
-        final var path = "./Aufgabenblatt6/src/back_button.png";
+        final var path = "./assets/back_button.png";
         final var img = Image.fromFile(path);
         cd.drawImage(xPos, rectHeight * COLORS.length, rectWidth, rectHeight, img);
 
@@ -94,7 +95,8 @@ public class Mastermind {
         IntStream.range(0, inProgress ? currentRound : currentRound + 1).forEach(row -> {
             IntStream.range(0, CODE_LENGTH).forEach(col -> {
                 cd.setColor(hintToColor.apply(hints[row][col]));
-                cd.fillCircle(circleRadius + col * circleSpacing + (double) availableWidth / 2, circleRadius + row * circleSpacing, circleRadius - sizeReduction);
+                cd.fillCircle(circleRadius + col * circleSpacing + (double) availableWidth / 2,
+                        circleRadius + row * circleSpacing, circleRadius - sizeReduction);
             });
         });
 
@@ -108,7 +110,8 @@ public class Mastermind {
         cd.setTitle("master mind");
         var es = cd.getEventScanner();
 
-        Supplier<int[]> solutionGenerator = () -> IntStream.generate(() -> (int) (Math.random() * COLORS.length)).limit(CODE_LENGTH).toArray();
+        Supplier<int[]> solutionGenerator = () -> IntStream.generate(() -> (int) (Math.random() * COLORS.length))
+                .limit(CODE_LENGTH).toArray();
         int[] solution = solutionGenerator.get();
         int[][] guesses = new int[MAX_ROUNDS][CODE_LENGTH]; // -1: empty, 0-8: colors
         Arrays.setAll(guesses, i -> Arrays.stream(guesses[i]).map(j -> -1).toArray());
@@ -168,8 +171,10 @@ public class Mastermind {
 
             // update hint array
             final int cr = currentRound;
-            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == solution[i] ? 2 : (Arrays.stream(solution).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
-            System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr]) + " (round " + currentRound + ")");
+            hints[cr] = IntStream.range(0, CODE_LENGTH).map(i -> guesses[cr][i] == solution[i] ? 2
+                    : (Arrays.stream(solution).anyMatch(x -> x == guesses[cr][i]) ? 1 : 0)).toArray();
+            System.out.println("guess: " + Arrays.toString(guesses[cr]) + " --> hint: " + Arrays.toString(hints[cr])
+                    + " (round " + currentRound + ")");
 
             // render
             render(cd, guesses, hints);

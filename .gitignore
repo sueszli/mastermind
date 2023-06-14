@@ -129,6 +129,8 @@ fabric.properties
 
 # Package Files #
 *.jar
+!CodeDraw.jar
+
 *.war
 *.nar
 *.ear
